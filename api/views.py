@@ -61,7 +61,10 @@ class UsersView(View):
 class TasksView(View):
     def get(self, request: HttpRequest, pk=None) -> JsonResponse:
         data = request.body.decode('utf-8')
-        data = json.loads(data)
+        if data:
+            data = json.loads(data)
+        else:
+            return JsonResponse({'error': 'Invalid data'}, status=400)
 
         try:
             user = User.objects.get(pk=data['user_id'])
