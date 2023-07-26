@@ -71,7 +71,7 @@ class TasksView(View):
             return JsonResponse({'error': 'Invalid data'}, status=400)
             
         if pk is None:
-            tasks = Task.objects.filter(user=user)
+            tasks = Task.objects.filter(author=user)
             tasks_list = [model_to_dict(task, fields=['id', 'title', 'completed']) for task in tasks]
             return JsonResponse(tasks_list, safe=False)
         else:
