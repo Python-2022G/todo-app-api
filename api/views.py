@@ -62,18 +62,18 @@ class UsersView(View):
 
 class TasksView(View):
     def get(self, request: HttpRequest, pk=None) -> JsonResponse:
-        data = request.body.decode('utf-8')
-        if data:
-            data = json.loads(data)
-        else:
-            return JsonResponse({'error': 'Invalid data'}, status=400)
+        headers = request.headers
 
-        try:
-            user = User.objects.get(pk=data['user_id'])
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except KeyError:
-            return JsonResponse({'error': 'Invalid data'}, status=400)
+        authorization = headers.get('Authorization')
+
+        authorization = authorization.split(' ')
+
+        username, password = b64decode(authorization[1]).decode('utf-8').split(':')
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
             
         if pk is None:
             tasks = Task.objects.filter(author=user)
@@ -88,11 +88,23 @@ class TasksView(View):
                 return JsonResponse({'error': 'Task not found'}, status=404)
 
     def post(self, request: HttpRequest) -> JsonResponse:
+        headers = request.headers
+
+        authorization = headers.get('Authorization')
+
+        authorization = authorization.split(' ')
+
+        username, password = b64decode(authorization[1]).decode('utf-8').split(':')
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+
         data = request.body.decode('utf-8')
         data = json.loads(data)
 
         try:
-            user = User.objects.get(pk=data['user_id'])
             task = Task.objects.create(title=data['title'], description=data.get('description', ''), author=user)
             task.save()
             return JsonResponse(model_to_dict(task, fields=['id', 'title', 'completed']))
@@ -103,15 +115,18 @@ class TasksView(View):
     
     
     def put(self, request: HttpRequest, pk: int) -> JsonResponse:
-        data = request.body.decode('utf-8')
-        data = json.loads(data)
+        headers = request.headers
 
-        try:
-            user = User.objects.get(pk=data['user_id'])
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except KeyError:
-            return JsonResponse({'error': 'Invalid data'}, status=400)
+        authorization = headers.get('Authorization')
+
+        authorization = authorization.split(' ')
+
+        username, password = b64decode(authorization[1]).decode('utf-8').split(':')
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
         try:
             task = Task.objects.get(id=pk, author=user)
@@ -126,15 +141,18 @@ class TasksView(View):
         return JsonResponse(model_to_dict(task, fields=['id', 'title', 'completed']))
 
     def delete(self, request: HttpRequest, pk: int) -> JsonResponse:
-        data = request.body.decode('utf-8')
-        data = json.loads(data)
+        headers = request.headers
 
-        try:
-            user = User.objects.get(pk=data['user_id'])
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
-        except KeyError:
-            return JsonResponse({'error': 'Invalid data'}, status=400)
+        authorization = headers.get('Authorization')
+
+        authorization = authorization.split(' ')
+
+        username, password = b64decode(authorization[1]).decode('utf-8').split(':')
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
 
         try:
             task = Task.objects.get(author=user, id=pk)
@@ -149,20 +167,9 @@ class LoginView(View):
 
         headers = request.headers
 
-        if headers.get('Content-Type') != 'application/json':
-            return JsonResponse({'error': 'Invalid Content-Type'}, status=400)
-
         authorization = headers.get('Authorization')
-        if authorization is None:
-            return JsonResponse({'error': 'No authorization header'}, status=401)
 
         authorization = authorization.split(' ')
-        
-        if len(authorization) != 2:
-            return JsonResponse({'error': 'Invalid authorization header'}, status=401)
-        
-        if authorization[0] != 'Basic':
-            return JsonResponse({'error': 'Invalid authorization header'}, status=401)
 
         username, password = b64decode(authorization[1]).decode('utf-8').split(':')
 
