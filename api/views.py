@@ -4,6 +4,8 @@ from django.forms.models import model_to_dict
 import json
 from django.contrib.auth.models import User
 from .models import Task
+from django.contrib.auth import authenticate
+from base64 import b64decode
 
 
 class UsersView(View):
@@ -141,3 +143,35 @@ class TasksView(View):
         except Task.DoesNotExist:
             return JsonResponse({'error': 'Task not found'}, status=404)
         
+
+class LoginView(View):
+    def post(self, request: HttpRequest) -> JsonResponse:
+
+        headers = request.headers
+
+        if headers.get('Content-Type') != 'application/json':
+            return JsonResponse({'error': 'Invalid Content-Type'}, status=400)
+
+        authorization = headers.get('Authorization')
+        if authorization is None:
+            return JsonResponse({'error': 'No authorization header'}, status=401)
+
+        authorization = authorization.split(' ')
+        
+        if len(authorization) != 2:
+            return JsonResponse({'error': 'Invalid authorization header'}, status=401)
+        
+        if authorization[0] != 'Basic':
+            return JsonResponse({'error': 'Invalid authorization header'}, status=401)
+
+        username, password = b64decode(authorization[1]).decode('utf-8').split(':')
+
+        try:
+            user: User = authenticate(username=username, password=password)
+
+            if user is not None:
+                return JsonResponse({'status': 'ok'})
+            else:
+                return JsonResponse({'error': 'Invalid credentials'}, status=401)
+        except KeyError:
+            return JsonResponse({'error': 'Invalid data'}, status=400)
