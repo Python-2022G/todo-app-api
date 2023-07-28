@@ -10,7 +10,16 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ('title', 'description', 'id')
     ordering = ('-created_at', '-updated_at')
     date_hierarchy = 'created_at'
+    actions = ('mark_as_completed', 'mark_as_incompleted')
 
     def author(self, obj):
         return obj.author.username
-        
+
+    @admin.action(description='Mark selected tasks as completed')
+    def mark_as_completed(self, request, queryset):
+        queryset.update(completed=True)
+
+    @admin.action(description='Mark selected tasks as incompleted')
+    def mark_as_incompleted(self, request, queryset):
+        queryset.update(completed=False)
+    
